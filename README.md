@@ -143,5 +143,5 @@ type Returns = {
 
 ## 感谢
 
-- [ChatGLM2-6B](https://github.com/THUDM/ChatGLM2-6B)开源了这么好用的语言模型。
+- [ChatGLM2-6B](https://github.com/THUDM/ChatGLM2-6B)开源如此优秀的语言模型
 - [CreativeChatGLM](https://github.com/ypwhs/CreativeChatGLM)提供了诱导词的实现思路
