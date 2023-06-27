@@ -1,18 +1,27 @@
 # my-chatglm2
 
-my-chatglm2 是基于 [chatglm2](https://github.com/THUDM/ChatGLM2-6B) 的 API 服务端 + 客户端一键启动方案。
+my-chatglm2 是基于 [chatglm2](https://github.com/THUDM/ChatGLM2-6B) 的 API 服务端，搭配了量身定制的客户端和整合包。
 
-欢迎 issues 留言交流。
+欢迎 issues 留言交流，喜欢的话不妨点个免费的星星，谢啦！
+
+<img src="https://github.com/yuri2peter/my-chatglm2/assets/23306626/2fae71f2-faa6-4d2a-97a7-72d548786a59" width="700" />
 
 ## 特性
 
-- 支持引导词（让 AI 的回答按固定内容开头）
+- 支持**引导词**（让 AI 的回答按固定内容开头）
 - 专属网页/桌面客户端 [docile-chatty](https://github.com/yuri2peter/docile-chatty)
 - 专为 windows 设计的懒人包，小白也能放心玩耍
 - 支持流式 API
 - 支持生成时主动打断
 - 自动限制输入长度，拒绝意外爆显存
 - 预定义大、中、小三档显存的启动脚本
+
+## 获取
+
+有两种方式使用my-chatglm2
+
+1. （推荐）百度网盘下载 [开箱即用整合包](https://pan.baidu.com/s/1auZ14BHjpj5e08sbnkf7lQ?pwd=1tdn)
+2. clone本项目，并参考下文“安装”说明进行安装，适用于动手能力强，有二次开发需求的朋友
 
 ## API
 
@@ -131,3 +140,8 @@ type Returns = {
 ## 问题记录
 
 - 本地模型读取时提示路径错误？transformers 版本限制到 4.26.1 试试。
+
+## 感谢
+
+- [ChatGLM2-6B](https://github.com/THUDM/ChatGLM2-6B)开源了这么好用的语言模型。
+- [CreativeChatGLM](https://github.com/ypwhs/CreativeChatGLM)提供了诱导词的实现思路
