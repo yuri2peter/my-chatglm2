@@ -19,7 +19,9 @@ my-chatglm2 是基于 [chatglm2](https://github.com/THUDM/ChatGLM2-6B) 的 API �
 ### GET /
 
 描述：返回服务器已启动的消息
+
 请求参数：无
+
 返回结果：
 
 ```json
@@ -32,6 +34,7 @@ my-chatglm2 是基于 [chatglm2](https://github.com/THUDM/ChatGLM2-6B) 的 API �
 ### POST /stream
 
 描述：流式生成
+
 请求参数：
 
 ```ts
@@ -54,7 +57,9 @@ type EventData = [string, Array<[string, string]>]; // 回复,对话历史
 ### POST /interrupt
 
 描述：打断当前的生成
+
 请求参数：无
+
 返回结果：
 
 ```json
@@ -67,6 +72,7 @@ type EventData = [string, Array<[string, string]>]; // 回复,对话历史
 ### POST /tokenize
 
 描述：使用 tokenizer 分解字符串，统计 token 数目
+
 请求参数：
 
 ```ts
