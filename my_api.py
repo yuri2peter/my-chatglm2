@@ -144,7 +144,7 @@ def start_server(quantize_level, http_address: str, port: int):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Stream API Service for ChatGLM2-6B")
     parser.add_argument(
-        "--quantize", "-q", help="level of quantize, option：16, 8 or 4", default=4
+        "--quantize", "-q", help="level of quantize, option：0, 8 or 4", default=4
     )
     parser.add_argument("--host", "-H", help="host to listen", default="0.0.0.0")
     parser.add_argument(

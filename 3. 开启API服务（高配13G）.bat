@@ -3,6 +3,6 @@
 cd /D "%~dp0"
 
 call env_offline.bat
-python my_api.py -q 16 %*
+python my_api.py -q 0 %*
 
 pause

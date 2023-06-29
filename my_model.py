@@ -100,15 +100,18 @@ def my_stream_chat(
 # 获取 tokenizer 和 model
 def get_tokenizer_and_model(bits=4):
     modelPath = "THUDM/chatglm2-6b"
-    print(f"Using model: {modelPath}(bits {bits})")
+    print(
+        f"Using model: {modelPath}({'bits '+str(bits) if bits>0 else 'non-quantitative'})"
+    )
     tokenizer = AutoTokenizer.from_pretrained(
         modelPath, trust_remote_code=True, revision="v1.0"
     )
-    model = (
-        AutoModel.from_pretrained(modelPath, trust_remote_code=True, revision="v1.0")
-        .quantize(bits)
-        .cuda()
+    model = AutoModel.from_pretrained(
+        modelPath, trust_remote_code=True, revision="v1.0"
     )
+    if bits > 0:
+        model = model.quantize(bits)
+    model = model.to("cuda")
     model.eval()
     model.my_build_inputs = types.MethodType(my_build_inputs, model)
     model.my_stream_chat = types.MethodType(my_stream_chat, model)
