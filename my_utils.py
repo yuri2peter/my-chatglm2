@@ -15,6 +15,7 @@ def inputs_length_fixer(
     history: List[Tuple[str, str]],
     max_length: int,
 ):
+    max_length = max_length * 0.8  # 限制 * 折扣系数，因为需要为下一次输出预留空间
     tokenUsed = 0
     tokenQueries = calc_token_num(tokenizer, query + answer_prefix)
     # 如果query过长，报错
