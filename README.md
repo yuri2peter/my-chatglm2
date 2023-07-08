@@ -18,10 +18,10 @@ my-chatglm2 是基于 [chatglm2](https://github.com/THUDM/ChatGLM2-6B) 的 API �
 
 ## 获取
 
-有两种方式使用my-chatglm2
+有两种方式使用 my-chatglm2
 
 1. （推荐）百度网盘下载 [开箱即用整合包](https://pan.baidu.com/s/1auZ14BHjpj5e08sbnkf7lQ?pwd=1tdn)
-2. clone本项目，并参考下文“安装”说明进行安装，适用于动手能力强，有二次开发需求的朋友
+2. clone 本项目，并参考下文“安装”说明进行安装，适用于动手能力强，有二次开发需求的朋友
 
 ## API
 
@@ -40,9 +40,9 @@ my-chatglm2 是基于 [chatglm2](https://github.com/THUDM/ChatGLM2-6B) 的 API �
 }
 ```
 
-### POST /stream
+### POST OR GET /generate
 
-描述：流式生成
+描述：生成文本，支持 GET 和 POST（推荐） 两种方式，可选流式输出。
 
 请求参数：
 
@@ -52,6 +52,7 @@ interface Params {
   answer_prefix: string; // 引导词
   max_length: string; // token上限
   history: Array<[string, string]>; // 对话历史
+  stream: boolean; // 是否流式输出
   top_p: number;
   temperature: number;
 }
@@ -59,8 +60,10 @@ interface Params {
 
 返回结果：
 
-```ts
-type EventData = [string, Array<[string, string]>]; // 回复,对话历史
+```
+非流式："string"
+
+流式：data: { "response": "string" }
 ```
 
 ### POST /interrupt
@@ -137,7 +140,7 @@ type Returns = {
 
 沿用 chatglm2 的使用协议。
 
-## 问题记录
+## 问题
 
 - 本地模型读取时提示路径错误？transformers 版本限制到 4.26.1 试试。
 
@@ -145,3 +148,8 @@ type Returns = {
 
 - [ChatGLM2-6B](https://github.com/THUDM/ChatGLM2-6B)开源如此优秀的语言模型
 - [CreativeChatGLM](https://github.com/ypwhs/CreativeChatGLM)提供了诱导词的实现思路
+
+## 版本
+
+- V1.1 2023/07/08 文本输出接口修改为`/generate`，精简输出内容，支持 GET 请求，支持 “常规” / “流式” 两种生成方式。
+- V1.0 2023/06/27 第一个版本。

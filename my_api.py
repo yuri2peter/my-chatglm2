@@ -1,13 +1,14 @@
-from fastapi import FastAPI
+import asyncio
+from fastapi import FastAPI, Request, Response
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
-from my_utils import inputs_length_fixer
 import uvicorn
 import argparse
 import logging
 import json
 import sys
 from my_model import get_tokenizer_and_model
+from my_utils import inputs_length_fixer
 
 # 文本token长度上限(该上限同时对输入和输出起作用，如果输入太长，剩余的输出字数就会减少)
 # 该参数只能限制输出效果
@@ -61,59 +62,104 @@ def start_server(quantize_level, http_address: str, port: int):
         logger.error(f"Error {sessionIndex}: {e}")
         yield f"data: {e}\n\n"
 
-    def decorate(generator, sessionIndex):
+    def decorate(generator, sessionIndex, stream=False):
         lastStr = ""
         for item in generator:
             lastStr = item[0]
-            yield f"data: {json.dumps(item, ensure_ascii=False)}\n\n"
+            if stream:
+                yield f"data: {json.dumps({'response': item[0]}, ensure_ascii=False)}\n\n"
         logger.info("Output {} - {}".format(sessionIndex, {"response": lastStr}))
+        if not stream:
+            yield lastStr
+
+    def generate(
+        query,
+        answer_prefix,
+        max_length,
+        history,
+        stream,
+        top_p,
+        temperature,
+    ):
+        sessionIndexHandle[0] += 1
+        sessionIndex = sessionIndexHandle[0]
+        max_length = min(max_length, MAX_LENGTH)
+        history = [tuple(h) for h in history]
+        # inputs_length_fixer对输入的长度进行限制，一定程度上防止了显存超限
+        history = inputs_length_fixer(
+            tokenizer, query, answer_prefix, history, max_length
+        )
+        inputs = {
+            "sessionIndex": sessionIndex,
+            "tokenizer": tokenizer,
+            "query": query,
+            "answer_prefix": answer_prefix,
+            "max_length": max_length,
+            "top_p": float(top_p),
+            "temperature": float(temperature),
+            "allow_generate": allow_generate,
+            "history": history,
+        }
+        # 记录输入日志
+        logData = inputs.copy()
+        del logData["tokenizer"]
+        del logData["allow_generate"]
+        logger.info(
+            "Inputs {} - {}".format(
+                sessionIndex, json.dumps(logData, ensure_ascii=False)
+            )
+        )
+        # 生成并返回
+        streamChat = model.my_stream_chat(**inputs)
+        if stream:
+            return StreamingResponse(decorate(streamChat, sessionIndex, stream))
+        else:
+            responseText = next(decorate(streamChat, sessionIndex))
+            # response.headers["Content-Type"] = "text/plain"
+            return Response(content=responseText, media_type="text/plain")
 
     #  返回服务器整体状态
     @app.get("/")
-    def index():
+    def index(request: Request):
         return {"message": "Server started", "success": True}
 
-    #  流式生成
-    @app.post("/stream")
-    def continue_question_stream(arg_dict: dict):
-        sessionIndexHandle[0] += 1
-        sessionIndex = sessionIndexHandle[0]
-        try:
-            query = arg_dict["query"]
-            answer_prefix = arg_dict.get("answer_prefix", "")
-            max_length = min(arg_dict.get("max_length", MAX_LENGTH), MAX_LENGTH)
-            history = arg_dict.get("history", [])
-            history = [tuple(h) for h in history]
-            # inputs_length_fixer对输入的长度进行限制，一定程度上防止了显存超限
-            history = inputs_length_fixer(
-                tokenizer, query, answer_prefix, history, max_length
-            )
-            inputs = {
-                "sessionIndex": sessionIndex,
-                "tokenizer": tokenizer,
-                "query": query,
-                "answer_prefix": answer_prefix,
-                "max_length": max_length,
-                "top_p": float(arg_dict.get("top_p", 0.7)),
-                "temperature": float(arg_dict.get("temperature", 1.0)),
-                "allow_generate": allow_generate,
-                "history": history,
-            }
+    #  Test
+    @app.get("/generate")
+    def generate1(
+        query="",
+        answer_prefix="",
+        max_length=MAX_LENGTH,
+        history="[]",
+        stream=False,
+        top_p=0.7,
+        temperature=1.0,
+    ):
+        history = json.loads(history)
+        params = {
+            "query": query,
+            "answer_prefix": answer_prefix,
+            "max_length": max_length,
+            "history": history,
+            "stream": stream,
+            "top_p": top_p,
+            "temperature": temperature,
+        }
+        return generate(**params)
 
-            logData = inputs.copy()
-            del logData["tokenizer"]
-            del logData["allow_generate"]
-
-            logger.info(
-                "Inputs {} - {}".format(
-                    sessionIndex, json.dumps(logData, ensure_ascii=False)
-                )
-            )
-            return StreamingResponse(
-                decorate(model.my_stream_chat(**inputs), sessionIndex)
-            )
-        except Exception as e:
-            return StreamingResponse(alertError(e, sessionIndex))
+    @app.post("/generate")
+    def generate2(
+        arg_dict: dict,
+    ):
+        params = {
+            "query": arg_dict.get("query", ""),
+            "answer_prefix": arg_dict.get("answer_prefix", ""),
+            "max_length": arg_dict.get("max_length", MAX_LENGTH),
+            "history": arg_dict.get("history", []),
+            "stream": arg_dict.get("stream", False),
+            "top_p": arg_dict.get("top_p", 0.7),
+            "temperature": arg_dict.get("temperature", 1.0),
+        }
+        return generate(**params)
 
     # 打断当前的生成
     @app.post("/interrupt")
@@ -130,6 +176,14 @@ def start_server(quantize_level, http_address: str, port: int):
         tokens = tokenizer.tokenize(text)
         return {tokens: tokens if return_tokens else [], len: len(tokens)}
 
+    # 启动后提示
+    @app.on_event("startup")
+    def on_startup():
+        print(
+            f"\n\033[92mINFO:     \033[93mTry http://{http_address}:{port}/generate?query=hi\033[0m"
+        )
+
+    # 记录启动参数
     logger.info("System - Server started.")
     serverParams = {
         "host": http_address,
@@ -138,6 +192,8 @@ def start_server(quantize_level, http_address: str, port: int):
         "max_length": MAX_LENGTH,
     }
     logger.info(f"System - Confgis = { json.dumps(serverParams, ensure_ascii=False)}")
+
+    # 启动web服务
     uvicorn.run(app=app, host=http_address, port=port)
 
 
@@ -146,7 +202,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--quantize", "-q", help="level of quantize, option：0, 8 or 4", default=4
     )
-    parser.add_argument("--host", "-H", help="host to listen", default="0.0.0.0")
+    parser.add_argument("--host", "-H", help="host to listen", default="127.0.0.1")
     parser.add_argument(
         "--port", "-P", help="port of this service", default=DEFAULT_PORT
     )
