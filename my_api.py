@@ -112,10 +112,12 @@ def start_server(quantize_level, http_address: str, port: int):
         # 生成并返回
         streamChat = model.my_stream_chat(**inputs)
         if stream:
-            return StreamingResponse(decorate(streamChat, sessionIndex, stream))
+            return StreamingResponse(
+                decorate(streamChat, sessionIndex, stream),
+                media_type="text/event-stream",
+            )
         else:
             responseText = next(decorate(streamChat, sessionIndex))
-            # response.headers["Content-Type"] = "text/plain"
             return Response(content=responseText, media_type="text/plain")
 
     #  返回服务器整体状态
@@ -180,7 +182,7 @@ def start_server(quantize_level, http_address: str, port: int):
     @app.on_event("startup")
     def on_startup():
         print(
-            f"\n\033[92mINFO:     \033[93mTry http://{http_address}:{port}/generate?query=hi\033[0m"
+            f"\n\033[92mINFO:     \033[93mTry http://{http_address}:{port}/generate?stream=yes&query=Hi\033[0m"
         )
 
     # 记录启动参数
